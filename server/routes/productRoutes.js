@@ -1,6 +1,5 @@
 const express = require("express");
 const multer = require("multer");
-const cors = require("cors");
 const cloudinary = require("cloudinary");
 const cloudinaryStorage = require("multer-storage-cloudinary");
 const Validator = require("validator");
@@ -30,30 +29,25 @@ const upload = multer({ storage: storage }).single("image");
 
 const router = express.Router();
 
-router.get(
-  "/products",
+router.get("/products", (req, res) => {
+  Product.find({})
+    .then((product) => {
+      if (product.length < 1) {
+        res
+          .status(404)
+          .send({ status: "failed", message: "no products found" });
+      } else {
+        res.status(200).send({ status: "successful", data: product });
+      }
+    })
+    .catch((error) => {
+      throw error;
+    });
+});
 
-  (req, res) => {
-    Product.find({})
-      .then((product) => {
-        if (product.length < 1) {
-          res
-            .status(404)
-            .send({ status: "failed", message: "no products found" });
-        } else {
-          res.status(200).send({ status: "successful", data: product });
-        }
-      })
-      .catch((error) => {
-        throw error;
-      });
-  }
-);
-
-// A designer can add new designs on platform
+// Admin can add new products on platform
 router.post(
   "/add_product",
-  cors(),
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
   authenticate.checkAdmin,
@@ -99,7 +93,7 @@ router.post(
   }
 );
 
-// User can choose a design from available designs
+// User can add a product to cart
 router.post(
   "/product_select/:id",
   authenticate.checkTokenExists,
@@ -139,7 +133,6 @@ router.get(
   "/cart",
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
-  authenticate.checkIfCustomer,
   (req, res) => {
     const token = helper(req);
     Cart.find({ user_id: token.id, ordered: false }).then((cart) => {
@@ -177,7 +170,6 @@ router.post(
   "/order",
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
-  authenticate.checkIfCustomer,
   (req, res) => {
     const token = helper(req);
     Cart.find({ user_id: token.id }).then((cart) => {
