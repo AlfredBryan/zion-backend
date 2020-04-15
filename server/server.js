@@ -5,6 +5,8 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 
+const productRoutes = require("./routes/productRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -15,7 +17,7 @@ mongoose.connect(
   {
     useNewUrlParser: true,
     autoIndex: false,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
   },
   () => {
     console.log("connected to mongoDB");
@@ -42,9 +44,9 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
 //Adding routes
-
+app.use("/api/v1", productRoutes);
+app.use("/api/v1", userRoutes);
 
 //setting up port
 const port = process.env.PORT || 4000;
