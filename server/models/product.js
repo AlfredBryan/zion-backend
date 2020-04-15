@@ -9,7 +9,7 @@ const productSchema = new Schema({
   },
   product_name: {
     type: String,
-    default: "Trending Design",
+    required: [true, "product name is required"]
   },
   image: {
     type: String,
