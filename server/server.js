@@ -39,7 +39,6 @@ mongoose.connect(
 
 //middleware setup
 app.use(logger("dev"));
-app.use(cors());
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
