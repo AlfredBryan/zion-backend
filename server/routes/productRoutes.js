@@ -50,7 +50,6 @@ router.post(
   "/add_product",
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
-  authenticate.checkAdmin,
   parser,
   (req, res) => {
     const token = helper(req);
