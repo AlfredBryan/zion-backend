@@ -69,7 +69,7 @@ router.post(
     if (errors.length > 0) {
       res.status(422).send(errors);
     } else {
-      Design.create({
+      Product.create({
         product_name,
         image: req.file.secure_url,
         description,
