@@ -20,12 +20,12 @@ cloudinary.config({
 });
 const storage = cloudinaryStorage({
   cloudinary: cloudinary,
-  folder: "fashion",
-  allowedFormats: ["jpg", "jpeg", "png"],
+  folder: "posts",
+  allowedFormats: ["jpg", "png"],
   transformation: [{ width: 500, height: 500, crop: "limit" }],
 });
 
-const upload = multer({ storage: storage }).single("image");
+const parser = multer({ storage: storage }).single("image");
 
 const router = express.Router();
 
@@ -51,7 +51,7 @@ router.post(
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
   authenticate.checkAdmin,
-  upload,
+  parser,
   (req, res) => {
     const token = helper(req);
     const errors = [];
