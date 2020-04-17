@@ -23,10 +23,6 @@ const productSchema = new Schema({
     type: String,
     required: [true, "price field is required"],
   },
-  inCart: {
-    type: Boolean,
-    default: false,
-  },
   picked: [
     {
       type: Schema.Types.ObjectId,

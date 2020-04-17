@@ -114,7 +114,6 @@ router.post(
           user.save((error) => {
             if (error) return res.send(error);
           });
-          product.inCart = true;
           product.picked.push(token.id);
           product.save((error, p) => {
             if (error) return res.send(error);
