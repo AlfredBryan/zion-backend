@@ -11,6 +11,7 @@ const helper = require("../middleware/helper");
 const Product = require("../models/product");
 const Order = require("../models/order");
 const Cart = require("../models/cart");
+const User = require("../models/user")
 
 //cloudinary config
 cloudinary.config({
