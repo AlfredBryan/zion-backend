@@ -23,6 +23,14 @@ const productSchema = new Schema({
     type: String,
     required: [true, "price field is required"],
   },
+  count: {
+    type: Number,
+    default: 0,
+  },
+  total: {
+    type: Number,
+    default: 0,
+  },
   picked: [
     {
       type: Schema.Types.ObjectId,

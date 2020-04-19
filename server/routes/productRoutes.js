@@ -11,7 +11,7 @@ const helper = require("../middleware/helper");
 const Product = require("../models/product");
 const Order = require("../models/order");
 const Cart = require("../models/cart");
-const User = require("../models/user")
+const User = require("../models/user");
 
 //cloudinary config
 cloudinary.config({
@@ -54,42 +54,26 @@ router.post(
   parser,
   (req, res) => {
     const token = helper(req);
-    const errors = [];
     const { product_name, description, price } = req.body;
-    if (Validator.isEmpty(description)) {
-      errors.push({ message: "product description is required" });
-    }
-    if (Validator.isEmpty(product_name)) {
-      errors.push({ message: "product name is required" });
-    }
-
-    if (Validator.isEmpty(price)) {
-      errors.push({ message: "product price is required" });
-    }
-
-    if (errors.length > 0) {
-      res.status(422).send(errors);
-    } else {
-      Product.create({
-        product_name,
-        image: req.file.secure_url,
-        description,
-        price,
-        posted_by: token.id,
+    Product.create({
+      product_name,
+      image: req.file.secure_url,
+      description,
+      price,
+      posted_by: token.id,
+    })
+      .then((product) => {
+        if (!product) {
+          res
+            .status(500)
+            .send({ status: "failed", message: "error adding product" });
+        } else {
+          res.status(201).send({ status: "successful", data: product });
+        }
       })
-        .then((product) => {
-          if (!product) {
-            res
-              .status(500)
-              .send({ status: "failed", message: "error adding product" });
-          } else {
-            res.status(201).send({ status: "successful", data: product });
-          }
-        })
-        .catch((error) => {
-          throw error;
-        });
-    }
+      .catch((error) => {
+        throw error;
+      });
   }
 );
 
