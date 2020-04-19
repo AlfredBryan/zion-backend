@@ -48,14 +48,7 @@ router.get("/users", authenticate.checkAdmin, (req, res) => {
 //Create a user
 router.post("/create_user", (req, res) => {
   const errors = [];
-  const {
-    name,
-    state,
-    address,
-    phone,
-    is_admin,
-    password,
-  } = req.body;
+  const { name, state, address, phone, email, is_admin, password } = req.body;
   if (name.length < 5) {
     errors.push({ message: "name must be atleast 5 characters" });
   }
@@ -66,6 +59,12 @@ router.post("/create_user", (req, res) => {
     errors.push({ message: "phone must be atleast 11 characters" });
     if (!Number.isInteger(phone)) {
       errors.push({ message: "must be a number" });
+    }
+  }
+  if (email.length < 11) {
+    errors.push({ message: "email must be atleast 11 characters" });
+    if (Validator.isEmail(email)) {
+      errors.push({ message: "must be an email" });
     }
   }
   if (Validator.isEmpty(password)) {
