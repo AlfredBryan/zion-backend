@@ -40,7 +40,7 @@ mongoose.connect(
 //middleware setup
 app.use(logger("dev"));
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
