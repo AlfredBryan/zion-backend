@@ -34,12 +34,12 @@ const userSchema = new Schema({
     type: String,
     required: true,
   },
-  cart: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "Cart",
-    },
-  ],
+  // cart: [
+  //   {
+  //     type: Schema.Types.ObjectId,
+  //     ref: "Cart",
+  //   },
+  // ],
   date_joined: {
     type: Date,
     default: Date.now(),

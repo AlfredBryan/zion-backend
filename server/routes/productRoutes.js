@@ -1,17 +1,18 @@
-const express = require("express");
-const multer = require("multer");
-const cloudinary = require("cloudinary");
-const cloudinaryStorage = require("multer-storage-cloudinary");
-const Validator = require("validator");
-require("dotenv").config();
+const express = require('express');
+const multer = require('multer');
+const cloudinary = require('cloudinary');
+const cloudinaryStorage = require('multer-storage-cloudinary');
+const Validator = require('validator');
+require('dotenv').config();
 
-const authenticate = require("../middleware/authentication");
-const helper = require("../middleware/helper");
+const authenticate = require('../middleware/authentication');
+const helper = require('../middleware/helper');
 
-const Product = require("../models/product");
-const Order = require("../models/order");
-const Cart = require("../models/cart");
-const User = require("../models/user");
+const Product = require('../models/product');
+const Order = require('../models/order');
+const Cart = require('../models/cart');
+const CartItem = require('../models/cart_item');
+const User = require('../models/user');
 
 //cloudinary config
 cloudinary.config({
@@ -21,24 +22,24 @@ cloudinary.config({
 });
 const storage = cloudinaryStorage({
   cloudinary: cloudinary,
-  folder: "posts",
-  allowedFormats: ["jpg", "png"],
-  transformation: [{ width: 500, height: 500, crop: "limit" }],
+  folder: 'posts',
+  allowedFormats: ['jpg', 'png'],
+  transformation: [{ width: 500, height: 500, crop: 'limit' }],
 });
 
-const parser = multer({ storage: storage }).single("image");
+const parser = multer({ storage: storage }).single('image');
 
 const router = express.Router();
 
-router.get("/products", (req, res) => {
+router.get('/products', (req, res) => {
   Product.find({})
     .then((product) => {
       if (product.length < 1) {
         res
           .status(404)
-          .send({ status: "failed", message: "no products found" });
+          .send({ status: 'failed', message: 'no products found' });
       } else {
-        res.status(200).send({ status: "successful", data: product });
+        res.status(200).send({ status: 'successful', data: product });
       }
     })
     .catch((error) => {
@@ -48,7 +49,7 @@ router.get("/products", (req, res) => {
 
 // Admin can add new products on platform
 router.post(
-  "/add_product",
+  '/add_product',
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
   parser,
@@ -66,9 +67,9 @@ router.post(
         if (!product) {
           res
             .status(500)
-            .send({ status: "failed", message: "error adding product" });
+            .send({ status: 'failed', message: 'error adding product' });
         } else {
-          res.status(201).send({ status: "successful", data: product });
+          res.status(201).send({ status: 'successful', data: product });
         }
       })
       .catch((error) => {
@@ -79,30 +80,57 @@ router.post(
 
 // User can add a product to cart
 router.post(
-  "/product_select/:id",
+  '/product_select/:id',
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
   (req, res) => {
     const token = helper(req);
+
     User.findOne({ _id: token.id })
       .then((user) => {
         Product.findOne({ _id: req.params.id }).then((product) => {
-          let cart = new Cart({
-            user_id: token.id,
-            product: product,
-          });
-          user.cart.push(cart);
-          cart.save((error) => {
-            if (error) return res.send(error);
-          });
-          user.save((error) => {
-            if (error) return res.send(error);
-          });
-          product.picked.push(token.id);
-          product.save((error, p) => {
-            if (error) return res.send(error);
+          if (!product) {
+            return res.send('Product does not exist');
+          }
 
-            res.status(201).send(p);
+          Cart.findOne({ user_id: user._id, ordered: false }).then((cart) => {
+            if (!cart) {
+              let new_cart = new Cart();
+
+              new_cart.save((error) => {
+                if (error) return res.send(error);
+              });
+
+              let cart_item = new CartItem({
+                cart_id: new_cart._id,
+                product: product._id,
+              });
+
+              cart_item.save((error) => {
+                if (error) return res.send(error);
+              });
+
+              return res.send('Prduct has been added successfully');
+            }
+
+            CartItem.findOne({ cart_id: cart._id, product: product._id }).then(
+              (cart_item) => {
+                if (cart_item) {
+                  return res.send('Product has been added already');
+                }
+
+                let new_cart_item = new CartItem({
+                  cart_id: cart._id,
+                  product: product._id,
+                });
+
+                new_cart_item.save((error) => {
+                  if (error) return res.send(error);
+                });
+                return res.send({ new_cart_item, cart, product });
+                return res.send('Product has been added successfully');
+              }
+            );
           });
         });
       })
@@ -114,24 +142,52 @@ router.post(
 
 //View Cart
 router.get(
-  "/cart",
+  '/cart',
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
   (req, res) => {
     const token = helper(req);
-    Cart.find({ user_id: token.id, ordered: false }).then((cart) => {
-      if (cart.length < 1) {
-        res.status(200).send({ message: "Nothing in cart yet" });
+    Cart.findOne({ user_id: token.id, ordered: false }).then((cart) => {
+      if (!cart) {
+        return res.status(200).send({ message: 'Nothing in cart yet' });
       }
 
-      res.status(200).send(cart);
+      CartItem.find({ cart_id: cart._id }).then(async(cart_items) => {
+        if (cart_items.length < 1) {
+          return res.status(200).send({ message: 'Nothing in cart yet' });
+        }
+
+        let cart_products = [];
+
+        for (let i = 0; i < cart_items.length; i++) {
+          const item = cart_items[i];
+
+          const product = await Product.findOne({ _id: item.product });
+
+          if (product) {
+            let data = {
+              id: product._id,
+              quantity: item.quantity,
+              image: product.image,
+              name: product.product_name,
+              price: product.price,
+              cost: product.price * item.quantity,
+            };
+
+            cart_products.push(data);
+          }
+        }
+        
+        return res.status(200).send({ data: cart_products, cart });
+      });
+
     });
   }
 );
 
 // View user by user Id
 router.get(
-  "/view_user/:id",
+  '/view_user/:id',
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
   authenticate.checkAdmin,
@@ -139,9 +195,9 @@ router.get(
     User.findOne({ _id: req.params.id })
       .then((user) => {
         if (!user) {
-          res.status(404).send({ message: "user not found" });
+          res.status(404).send({ message: 'user not found' });
         }
-        res.status(200).send({ status: "successful", data: user });
+        res.status(200).send({ status: 'successful', data: user });
       })
       .catch((error) => {
         res.status(500).send(error);
@@ -151,7 +207,7 @@ router.get(
 
 //user can order a design
 router.post(
-  "/order",
+  '/order',
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
   (req, res) => {
@@ -174,15 +230,39 @@ router.post(
 
 //Fetch Orders
 router.get(
-  "/user_order",
+  '/user_order',
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
   (req, res) => {
     Order.find({}).then((orders) => {
       if (orders.length < 1) {
-        res.status(200).send({ message: "No orders yet" });
+        res.status(200).send({ message: 'No orders yet' });
       }
       res.status(200).send({ success: true, data: orders });
+    });
+  }
+);
+
+router.get(
+  '/cart/delete/:id',
+  authenticate.checkTokenExists,
+  authenticate.checkTokenValid,
+  (req, res) => {
+    const { id } = req.params;
+    const { product } = req.query;
+    const token = helper(req);
+    Cart.findOne({ user_id: token.id, ordered: false, _id: id }).then((cart) => {
+      if (!cart) {
+        res.status(200).send({ message: 'Item does not exist in the cart' });
+      }
+
+      CartItem.findOne({ product, cart_id: cart._id }).then(item => {
+        if (item) {
+          item.delete();
+        }
+      })
+      
+      res.status(200).send('Successful');
     });
   }
 );
