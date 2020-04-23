@@ -85,17 +85,21 @@ router.post(
   authenticate.checkTokenValid,
   (req, res) => {
     const token = helper(req);
-
+    // console.log(token)
     User.findOne({ _id: token.id })
       .then((user) => {
-        Product.findOne({ _id: req.params.id }).then((product) => {
+        Product.findOne({ _id: req.params.id }).then(async(product) => {
           if (!product) {
             return res.send('Product does not exist');
           }
 
           Cart.findOne({ user_id: user._id, ordered: false }).then((cart) => {
+            // console.log(cart)
+            // return res.send(cart)
             if (!cart) {
-              let new_cart = new Cart();
+              let new_cart = new Cart({
+                user_id: user._id
+              });
 
               new_cart.save((error) => {
                 if (error) return res.send(error);
@@ -110,13 +114,13 @@ router.post(
                 if (error) return res.send(error);
               });
 
-              return res.send('Prduct has been added successfully');
+              return res.send({ message: 'Prduct has been added successfully', new_cart_item: cart_item, cart: new_cart });
             }
 
             CartItem.findOne({ cart_id: cart._id, product: product._id }).then(
               (cart_item) => {
                 if (cart_item) {
-                  return res.send('Product has been added already');
+                  return res.send({message:'Product has been added already', new_cart_item: cart_item, cart});
                 }
 
                 let new_cart_item = new CartItem({
@@ -128,7 +132,6 @@ router.post(
                   if (error) return res.send(error);
                 });
                 return res.send({ new_cart_item, cart, product });
-                return res.send('Product has been added successfully');
               }
             );
           });
@@ -149,6 +152,7 @@ router.get(
     const token = helper(req);
     Cart.findOne({ user_id: token.id, ordered: false }).then((cart) => {
       if (!cart) {
+        // return res.status(400).send('nothing')
         return res.status(200).send({ message: 'Nothing in cart yet' });
       }
 
@@ -261,7 +265,7 @@ router.get(
           item.delete();
         }
       })
-      
+
       res.status(200).send('Successful');
     });
   }
