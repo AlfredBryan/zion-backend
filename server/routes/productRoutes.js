@@ -88,7 +88,7 @@ router.post(
     // console.log(token)
     User.findOne({ _id: token.id })
       .then((user) => {
-        Product.findOne({ _id: req.params.id }).then(async(product) => {
+        Product.findOne({ _id: req.params.id }).then(async (product) => {
           if (!product) {
             return res.send('Product does not exist');
           }
@@ -98,7 +98,7 @@ router.post(
             // return res.send(cart)
             if (!cart) {
               let new_cart = new Cart({
-                user_id: user._id
+                user_id: user._id,
               });
 
               new_cart.save((error) => {
@@ -114,13 +114,21 @@ router.post(
                 if (error) return res.send(error);
               });
 
-              return res.send({ message: 'Prduct has been added successfully', new_cart_item: cart_item, cart: new_cart });
+              return res.send({
+                message: 'Prduct has been added successfully',
+                new_cart_item: cart_item,
+                cart: new_cart,
+              });
             }
 
             CartItem.findOne({ cart_id: cart._id, product: product._id }).then(
               (cart_item) => {
                 if (cart_item) {
-                  return res.send({message:'Product has been added already', new_cart_item: cart_item, cart});
+                  return res.send({
+                    message: 'Product has been added already',
+                    new_cart_item: cart_item,
+                    cart,
+                  });
                 }
 
                 let new_cart_item = new CartItem({
@@ -156,7 +164,7 @@ router.get(
         return res.status(200).send({ message: 'Nothing in cart yet' });
       }
 
-      CartItem.find({ cart_id: cart._id }).then(async(cart_items) => {
+      CartItem.find({ cart_id: cart._id }).then(async (cart_items) => {
         if (cart_items.length < 1) {
           return res.status(200).send({ message: 'Nothing in cart yet' });
         }
@@ -181,10 +189,9 @@ router.get(
             cart_products.push(data);
           }
         }
-        
+
         return res.status(200).send({ data: cart_products, cart });
       });
-
     });
   }
 );
@@ -248,6 +255,39 @@ router.get(
 );
 
 router.get(
+  '/adjust_product/:id',
+  authenticate.checkTokenExists,
+  authenticate.checkTokenValid,
+  (req, res) => {
+    const token = helper(req);
+    const { id } = req.params;
+    const { type } = req.query;
+
+    Cart.findOne({ user_id: token.id, ordered: false }).then((cart) => {
+      if (!cart) {
+        return res.status(200).send({ message: 'Cart does not exist' });
+      }
+
+      CartItem.findOne({ cart_id: cart._id, product: id }).then((item) => {
+        if (!item) {
+          return res
+            .status(200)
+            .send({ message: 'Item does not exist in the cart' });
+        }
+
+        if (type == 'increment') item.quantity += 1;
+        else item.quantity -= 1;
+
+        item.save((error) => {
+          if (error) return res.send(error);
+        });
+        return res.status(200).send({ message: 'Successful' });
+      });
+    });
+  }
+);
+
+router.get(
   '/cart/delete/:id',
   authenticate.checkTokenExists,
   authenticate.checkTokenValid,
@@ -255,19 +295,21 @@ router.get(
     const { id } = req.params;
     const { product } = req.query;
     const token = helper(req);
-    Cart.findOne({ user_id: token.id, ordered: false, _id: id }).then((cart) => {
-      if (!cart) {
-        res.status(200).send({ message: 'Item does not exist in the cart' });
-      }
-
-      CartItem.findOne({ product, cart_id: cart._id }).then(item => {
-        if (item) {
-          item.delete();
+    Cart.findOne({ user_id: token.id, ordered: false, _id: id }).then(
+      (cart) => {
+        if (!cart) {
+          res.status(200).send({ message: 'Item does not exist in the cart' });
         }
-      })
 
-      res.status(200).send('Successful');
-    });
+        CartItem.findOne({ product, cart_id: cart._id }).then((item) => {
+          if (item) {
+            item.delete();
+          }
+        });
+
+        res.status(200).send('Successful');
+      }
+    );
   }
 );
 
