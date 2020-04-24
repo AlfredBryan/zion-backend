@@ -24,17 +24,28 @@ router.get('/user', (req, res) => {
       }
 
       Cart.findOne({ user_id: user._id, ordered: false }).then((cart) => {
+        return res.status(200).send(cart);
         if (!cart) {
           return res
             .status(200)
-            .send({ status: 'successful', message: 'found user', data: user, cart_items: [] });
+            .send({
+              status: 'successful',
+              message: 'found user',
+              data: user,
+              cart_items: [],
+            });
         }
 
-        CartItem.find({ cart_id: cart._id }).then(cart_item => {
+        CartItem.find({ cart_id: cart._id }).then((cart_item) => {
           return res
             .status(200)
-            .send({ status: 'successful', message: 'found user', data: user, cart_items: cart_item });
-        })
+            .send({
+              status: 'successful',
+              message: 'found user',
+              data: user,
+              cart_items: cart_item,
+            });
+        });
         // return res.send(cart);
       });
 
